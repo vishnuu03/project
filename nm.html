@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Event Scheduler App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: #555;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: white;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .event-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #222;
+      margin-bottom: 6px;
+    }
+    .event-time {
+      color: #555;
+      margin-bottom: 10px;
+    }
+    .event-desc {
+      font-style: italic;
+      color: #666;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #dc3545;
+      border: none;
+      color: white;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .delete-btn:hover {
+      background: #a71d2a;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Event Scheduler</h1>
+
+  <form id="eventForm">
+    <label for="title">Event Title *</label>
+    <input type="text" id="title" required placeholder="Enter event title" />
+
+    <label for="date">Date *</label>
+    <input type="date" id="date" required />
+
+    <label for="startTime">Start Time *</label>
+    <input type="time" id="startTime" required />
+
+    <label for="endTime">End Time *</label>
+    <input type="time" id="endTime" required />
+
+    <label for="description">Description</label>
+    <textarea id="description" rows="3" placeholder="Optional event description"></textarea>
+
+    <button type="submit">Add Event</button>
+  </form>
+
+  <h2>Scheduled Events</h2>
+  <ul id="eventsList"></ul>
+
+  <script>
+    const eventForm = document.getElementById('eventForm');
+    const eventsList = document.getElementById('eventsList');
+
+    // Load events from localStorage or empty array
+    let events = JSON.parse(localStorage.getItem('events')) || [];
+
+    function saveEvents() {
+      localStorage.setItem('events', JSON.stringify(events));
+    }
+
+    function displayEvents() {
+      eventsList.innerHTML = '';
+      if(events.length === 0) {
+        eventsList.innerHTML = '<p>No events scheduled.</p>';
+        return;
+      }
+      events.forEach((event, index) => {
+        const li = document.createElement('li');
+
+        const title = document.createElement('div');
+        title.className = 'event-title';
+        title.textContent = event.title;
+
+        const time = document.createElement('div');
+        time.className = 'event-time';
+        time.textContent = `${event.date} | ${event.startTime} - ${event.endTime}`;
+
+        const desc = document.createElement('div');
+        desc.className = 'event-desc';
+        desc.textContent = event.description || '';
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.textContent = 'Delete';
+        delBtn.onclick = () => {
+          events.splice(index, 1);
+          saveEvents();
+          displayEvents();
+        };
+
+        li.appendChild(title);
+        li.appendChild(time);
+        if(event.description) li.appendChild(desc);
+        li.appendChild(delBtn);
+
+        eventsList.appendChild(li);
+      });
+    }
+
+    eventForm.addEventListener('submit', e => {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value.trim();
+      const date = document.getElementById('date').value;
+      const startTime = document.getElementById('startTime').value;
+      const endTime = document.getElementById('endTime').value;
+      const description = document.getElementById('description').value.trim();
+
+      if(!title || !date || !startTime || !endTime) {
+        alert('Please fill all required fields.');
+        return;
+      }
+
+      if(startTime >= endTime) {
+        alert('End Time must be after Start Time.');
+        return;
+      }
+
+      // Check for conflicts
+      const conflict = events.some(ev => {
+        if(ev.date !== date) return false;
+        return (
+          (startTime >= ev.startTime && startTime < ev.endTime) ||
+          (endTime > ev.startTime && endTime <= ev.endTime) ||
+          (startTime <= ev.startTime && endTime >= ev.endTime)
+        );
+      });
+
+      if(conflict) {
+        alert('This event conflicts with an existing event.');
+        return;
+      }
+
+      // Add new event
+      events.push({title, date, startTime, endTime, description});
+      saveEvents();
+      displayEvents();
+      eventForm.reset();
+    });
+
+    // Initial display
+    displayEvents();
+  </script>
+
+</body>
+</html>
